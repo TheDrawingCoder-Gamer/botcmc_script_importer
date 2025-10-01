@@ -1,0 +1,4 @@
+*.json
+vendor
+data
+__pycache__

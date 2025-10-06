@@ -7,26 +7,52 @@ parser.add_argument('input')
 
 args = parser.parse_args()
 
+
+
 if not os.path.exists('data/roles.json'):
     import fetch_data
     fetch_data.download_all()
 
 with open("data/roles.json") as t: 
-    roles = json.load(t)
+    roles_json = json.load(t)
 
 with open("data/role_description.json") as t:
     token_types = json.load(t)
 
-for role in roles:
-    if role["id"] not in token_types:
-        # ???
-        token_types[role["id"]] = {
-            "group": role["roleType"],
-            "name": role["roleType"]
-        }
-        continue
-    token_types[role["id"]]["group"] = role["roleType"]
-    token_types[role["id"]]["name"] = role["name"]
+class Role:
+    def __init__(self, role_json):
+        global token_types
+        self.id = role_json["id"]
+        self.group = role_json["roleType"]
+        self.name = role_json["name"]
+        self.lore_desc = None
+        self.changes_character_setup = False
+        self.first_night_token = False
+        self.other_nights_token = False
+        self.count = 1
+        if self.id not in token_types:
+            self.desc = ""
+        else:
+            token = token_types[self.id]
+            self.desc = token["description"]
+            if "lore_desc" in token:
+                self.lore_desc = token["lore_desc"]
+            if "changes_character_setup" in token:
+                self.changes_character_setup = token["changes_character_setup"]
+            if "first_night_token" in token:
+                self.first_night_token = token["first_night_token"]
+            if "other_nights_token" in token:
+                self.other_nights_token = token["other_nights_token"]
+            if "count" in token:
+                self.count = token["count"]
+            
+
+roles = {}
+
+for role in roles_json:
+    roles[role["id"]] = Role(role)
+
+
 
 with open("data/jinx.json") as t:
     jinx_pre = json.load(t)
@@ -68,12 +94,12 @@ group_names = {
 }
 
 for item in custom_list:
-    token = token_types[item]
-    if token["name"] == "djinn":
+    token = roles[item]
+    if token.name == "djinn":
         # ignore djinn, we handle jinxes seperately
         continue
-    if token["group"] in grouped_lists:
-        grouped_lists[token["group"]].append(token)
+    if token.group in grouped_lists:
+        grouped_lists[token.group].append(token)
     else:
         print("unseen group?")
 
@@ -82,7 +108,7 @@ for char in custom_list:
     if char in jinxes:
         for jinx in jinxes[char]:
             if jinx["id"] in custom_list:
-                jinxes_in_script.append({"host": token_types[char], "target": token_types[jinx["id"]], "reason": jinx["reason"]})
+                jinxes_in_script.append({"host": roles[char], "target": roles[jinx["id"]], "reason": jinx["reason"]})
 
 pages = []
 group_indexes = {}
@@ -108,14 +134,14 @@ def submit_page():
 def append_token(token,color):
     global page
     global char_count
-    if char_count + line_len + len(token["description"]) > max_chars:
+    if char_count + line_len + len(token.desc) > max_chars:
         submit_page()
-    page.append('{{underlined:true,color:"{}",text:"{}"}}'.format(color,token["name"]))
+    page.append('{{underlined:true,color:"{}",text:"{}"}}'.format(color,token.name))
     page.append('"\\n"')
     char_count += line_len
-    page.append('"{}"'.format(token["description"]))
+    page.append('"{}"'.format(token.desc.replace('"', '\\"')))
     page.append('"\\n\\n"')
-    char_count += len(token["description"])
+    char_count += len(token.desc)
     char_count += line_len
 def handle_group(group_id):
     global page
@@ -153,11 +179,11 @@ if len(jinxes_in_script) > 0:
         reason = jinx["reason"]
         if char_count + line_len * 2 + len(reason) > max_chars:
             submit_page()
-        page.append('{{color:"{}",text:"{}"}}'.format(group_colors[host["group"]],host["name"]))
+        page.append('{{color:"{}",text:"{}"}}'.format(group_colors[host.group],host.name))
         page.append('"\\n"')
         char_count += line_len
         page.append('"/ "')
-        page.append('{{color:"{}",text:"{}"}}'.format(group_colors[target["group"]], target["name"]))
+        page.append('{{color:"{}",text:"{}"}}'.format(group_colors[target.group], target.name))
         page.append('"\\n"')
         char_count += line_len
         page.append('"{}\\n"'.format(reason))
@@ -184,84 +210,111 @@ print(give_txt)
 print("")
 
 
-pages = []
-page = ['""']
+night_sheet_pages = []
+night_page = '"'
 char_count = 0
 
+def submit_night_page():
+    global night_page
+    global char_count
+    global night_sheet_pages
+    night_page += '"'
+    night_sheet_pages.append(night_page)
+    night_page = '"'
+    char_count = 0
+
 def add_night_state(night_state):
-    global page
+    global night_page
     global char_count
     if char_count + line_len > max_chars:
-        submit_page()
+        submit_night_page()
     if night_state == "DUSK":
-        page.append('"Dusk\\n"')
+        night_page += 'Dusk\\n'
     elif night_state == "DAWN":
-        page.append('"Dawn\\n"')
+        night_page += 'Dawn\\n'
     elif night_state == "MINION":
-        page.append('"Minion Info\\n"')
+        night_page += 'Minion Info\\n'
     elif night_state == "DEMON":
-        page.append('"Demon Info\\n"')
+        night_page += 'Demon Info\\n'
     elif night_state not in custom_list:
         return
     else:
-        page.append('"{}\\n"'.format(token_types[night_state]["name"]))
+        night_page += '{}\\n'.format(roles[night_state].name)
     char_count += line_len
     
-page.append('{text:"First Night:",bold:true}')
-page.append('{text:"\\n",bold:false}')
+night_page += 'First Night:\\n'
 char_count += line_len
 
 for night_state in nightsheet["firstNight"]:
     add_night_state(night_state)
 
 if char_count > 0:
-    submit_page()
+    submit_night_page()
 
-page.append('{text:"Other Nights:",bold:true}')
-page.append('{text:"\\n",bold:false}')
+night_page += 'Other Nights:\\n'
 char_count += line_len
 
 for night_state in nightsheet["otherNight"]:
     add_night_state(night_state)
 
 if char_count > 0:
-    submit_page()
+    submit_night_page()
 
-pages_txt = '[{}]'.format(','.join(pages))
+pages_txt = '[{}]'.format(','.join(night_sheet_pages))
 
-give_txt = '/give @p minecraft:written_book[written_book_content={{pages:{},author:"",title:"Nightsheet"}}]'.format(pages_txt)
+give_txt = '/give @p minecraft:writable_book[writable_book_content={{pages:{}}}]'.format(pages_txt)
 
 print(give_txt)
 print("")
+
+def split_lore(desc):
+    res = []
+    char_count = 0
+    lore_line_len = 30
+    words = desc.split(" ")
+    cur_line = ""
+    for word in words:
+        if char_count + len(word) > lore_line_len:
+            res.append(cur_line)
+            char_count = 0
+            cur_line = ""
+        cur_line += word.replace('"', '\\"')
+        cur_line += " "
+        char_count += len(word) + 1
+    if len(cur_line) > 0:
+        res.append(cur_line)
+    return res
+
 
 slots = []
 slot = 0
 travellers = []
 for item in custom_list:
-    token = token_types[item]
-    if token["group"] == "townsfolk":
+    token = roles[item]
+    if token.group == "townsfolk":
         color = "blue"
-    elif token["group"] == "outsider":
+    elif token.group == "outsider":
         color = "dark_blue"
-    elif token["group"] == "minion":
+    elif token.group == "minion":
         color = "red"
-    elif token["group"] == "demon":
+    elif token.group == "demon":
         color = "dark_red"
-    elif token["group"] == "travellers":
+    elif token.group == "travellers":
         color = "dark_purple"
     else:
         continue
     
     lore = []
 
-    if "lore_desc" in token:
-        for text in token["lore_desc"]:
-            lore.append('{{text: "{}",italic:false,color:"white"}}'.format(text))
-    else:
-        lore.append('{{text: "{}",italic:false,color:"white"}}'.format(token["description"]))
+    lore_desc = split_lore(token.desc)
+    for text in lore_desc:
+        lore.append('{{text: "{}",italic:false,color:"white"}}'.format(text))
 
-    stack_slot = '{{id:"minecraft:paper",components:{{"minecraft:enchantment_glint_override":true,"minecraft:item_name":{{text:"{}",color:"{}"}},lore:[{}] }}}}'.format(token["name"], color,','.join(lore))
-    if token["group"] == "travellers":
+    if token.changes_character_setup:
+        lore.append('{text:"✿",italic:false,color:"gold"}')
+
+    stack_slot = '{{id:"minecraft:paper",components:{{"minecraft:enchantment_glint_override":true,"minecraft:item_name":{{text:"{}",color:"{}"}},lore:[{}] }}}}'.format(token.name, color,','.join(lore))
+    if token.group == "travellers":
         travellers.append(stack_slot)
     else:
         slots.append('{{slot:{},item:{}}}'.format(slot,stack_slot))

@@ -10,5 +10,5 @@ Characters that aren't correctly implemented currently in my custom map:
 * Wraith - Technically possible by putting them in spectator, but may be considered unbalanced compared to the original vision
 * Bureaucrat/Thief - The map counts votes automatically, but doesn't have logic for handling these guys.
 * Banshee - Same as above, no logic for counting the vote twice.
-* Beggar - while can be replicated manually with block placements, its kind of jank.
-* Actually any traveller - Exile votes aren't implemented.
+* Beggar - you can take away and give vote tokens, so you can do this, but you'll have to do it manually
+* Voudon - Fully possible, but not automated

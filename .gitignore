@@ -1,4 +1,3 @@
 *.json
 vendor
-!data/*.json
 __pycache__

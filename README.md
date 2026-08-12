@@ -2,6 +2,8 @@
 
 Creates multiple commands that give a Script, the nightsheet, and the tokens in a shulker box.
 
+This is an unoffical tool. Blood on the Clocktower is made by Steven Medway and The Pandemonium Institute.
+
 ### Incompatible characters
 
 Characters that aren't correctly implemented currently in my custom map:

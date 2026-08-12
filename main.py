@@ -16,36 +16,35 @@ if not os.path.exists('data/roles.json'):
 with open("data/roles.json") as t: 
     roles_json = json.load(t)
 
-with open("data/role_description.json") as t:
-    token_types = json.load(t)
 
 class Role:
     def __init__(self, role_json):
-        global token_types
         self.id = role_json["id"]
-        self.group = role_json["roleType"]
+        self.group = role_json["team"]
         self.name = role_json["name"]
         self.lore_desc = None
         self.changes_character_setup = False
         self.first_night_token = False
         self.other_nights_token = False
         self.count = 1
-        if self.id not in token_types:
-            self.desc = ""
-        else:
-            token = token_types[self.id]
-            self.desc = token["description"]
-            if "lore_desc" in token:
-                self.lore_desc = token["lore_desc"]
-            if "changes_character_setup" in token:
-                self.changes_character_setup = token["changes_character_setup"]
-            if "first_night_token" in token:
-                self.first_night_token = token["first_night_token"]
-            if "other_nights_token" in token:
-                self.other_nights_token = token["other_nights_token"]
-            if "count" in token:
-                self.count = token["count"]
-            
+        self.desc = role_json["ability"]
+        
+
+        if "setup" in role_json:
+            self.changes_character_setup = role_json["setup"]
+        if "firstNightReminder" in role_json:
+            self.first_night_token = True
+        if "otherNightReminder" in role_json:
+            self.other_nights_token = True
+        if "special" in role_json:
+            special_info = role_json["special"]
+            for x in special_info:
+                if x["name"] == "bag-duplicate":
+                    self.count = 16
+                    break
+        # if "count" in token:
+        #    self.count = token["count"]
+        
 
 roles = {}
 
@@ -92,6 +91,8 @@ group_names = {
     "travellers": "Travellers",
     "jinxes": "Jinxes"
 }
+
+ignored_group = ["fabled", "loric"]
 
 for item in custom_list:
     token = roles[item]

@@ -92,7 +92,7 @@ group_names = {
     "jinxes": "Jinxes"
 }
 
-ignored_group = ["fabled", "loric"]
+ignored_groups = ["fabled", "loric"]
 
 for item in custom_list:
     token = roles[item]
@@ -101,7 +101,7 @@ for item in custom_list:
         continue
     if token.group in grouped_lists:
         grouped_lists[token.group].append(token)
-    else:
+    elif token.group not in ignored_groups:
         print("unseen group?")
 
 jinxes_in_script = []
@@ -229,13 +229,13 @@ def add_night_state(night_state):
     global char_count
     if char_count + line_len > max_chars:
         submit_night_page()
-    if night_state == "DUSK":
+    if night_state == "dusk":
         night_page += 'Dusk\\n'
-    elif night_state == "DAWN":
+    elif night_state == "dawn":
         night_page += 'Dawn\\n'
-    elif night_state == "MINION":
+    elif night_state == "minioninfo":
         night_page += 'Minion Info\\n'
-    elif night_state == "DEMON":
+    elif night_state == "demoninfo":
         night_page += 'Demon Info\\n'
     elif night_state not in custom_list:
         return

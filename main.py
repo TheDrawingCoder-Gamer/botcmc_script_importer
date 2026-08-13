@@ -4,12 +4,13 @@ import argparse
 
 parser = argparse.ArgumentParser(prog='botcmc_script_importer')
 parser.add_argument('input')
+parser.add_argument('--force-download', '-f', action='store_true')
 
 args = parser.parse_args()
 
 
 
-if not os.path.exists('data/roles.json'):
+if args.force_download or not os.path.exists('data/roles.json'):
     import fetch_data
     fetch_data.download_all()
 
